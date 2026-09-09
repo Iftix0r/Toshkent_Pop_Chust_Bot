@@ -13,6 +13,7 @@ from aiogram.types import (
     KeyboardButton,
     Message,
     ReplyKeyboardMarkup,
+    User,
 )
 
 import storage
@@ -20,10 +21,10 @@ from config import ADMIN_IDS, ADMIN_PHONE, ADMIN_USERNAME, BOT_TOKEN, DRIVERS_GR
 
 router = Router()
 order_id_counter = itertools.count(1)
-# order_id -> {"customer_id": int, "customer_name": str, "text": str}
+# order_id -> {"customer_id", "customer_name", "username", "phone", "location", "text", "message_id"}
 orders: dict[int, dict] = {}
-# user_id -> {"phone": str, "location": (lat, lon)}
-pending_info: dict[int, dict] = {}
+# customer_id -> order_id of their currently open (not yet accepted) order
+active_order_id: dict[int, int] = {}
 
 order_keyboard = ReplyKeyboardMarkup(
     keyboard=[
@@ -50,6 +51,86 @@ def user_contact(user_id: int, username: str | None) -> str:
     if username:
         return f"@{username}"
     return f'<a href="tg://user?id={user_id}">profil</a>'
+
+
+def get_or_create_order(user: User) -> dict:
+    order_id = active_order_id.get(user.id)
+    if order_id is not None:
+        return orders[order_id]
+
+    order_id = next(order_id_counter)
+    order = {
+        "customer_id": user.id,
+        "customer_name": user.full_name,
+        "username": user.username,
+        "message_id": None,
+    }
+    orders[order_id] = order
+    active_order_id[user.id] = order_id
+    return order
+
+
+def build_order_text(order: dict) -> str:
+    lines = [
+        "🚖 <b>Yangi buyurtma!</b>",
+        "",
+        f"👤 Mijoz: {order['customer_name']} "
+        f"({user_contact(order['customer_id'], order['username'])})",
+    ]
+    if order.get("phone"):
+        lines.append(f"📞 Telefon: {order['phone']}")
+    if order.get("location"):
+        latitude, longitude = order["location"]
+        lines.append(
+            "📍 Joylashuv: "
+            f'<a href="https://maps.google.com/?q={latitude},{longitude}">xaritada ko\'rish</a>'
+        )
+    if order.get("text"):
+        lines.append(f"📄 Ma'lumot: {order['text']}")
+    return "\n".join(lines)
+
+
+def build_order_keyboard(order_id: int, order: dict) -> InlineKeyboardMarkup:
+    username = order["username"]
+    customer_url = (
+        f"https://t.me/{username}" if username else f"tg://user?id={order['customer_id']}"
+    )
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"👤 {order['customer_name']}",
+                    url=customer_url,
+                    style=ButtonStyle.PRIMARY,
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✅ Qabul qilish",
+                    callback_data=f"accept:{order_id}",
+                    style=ButtonStyle.SUCCESS,
+                )
+            ],
+        ]
+    )
+
+
+async def sync_order_message(bot: Bot, order_id: int) -> None:
+    order = orders[order_id]
+    text = build_order_text(order)
+    keyboard = build_order_keyboard(order_id, order)
+
+    if order["message_id"] is not None:
+        await bot.edit_message_text(
+            chat_id=DRIVERS_GROUP_ID,
+            message_id=order["message_id"],
+            text=text,
+            reply_markup=keyboard,
+        )
+        return
+
+    sent = await bot.send_message(DRIVERS_GROUP_ID, text, reply_markup=keyboard)
+    order["message_id"] = sent.message_id
 
 
 @router.message(CommandStart())
@@ -83,30 +164,37 @@ async def cmd_stats(message: Message) -> None:
 
 @router.message(F.contact)
 async def handle_contact(message: Message) -> None:
-    pending_info.setdefault(message.from_user.id, {})["phone"] = message.contact.phone_number
-    await message.answer("📞 Telefon raqamingiz qabul qilindi.", reply_markup=order_keyboard)
+    order = get_or_create_order(message.from_user)
+    order["phone"] = message.contact.phone_number
+    order_id = active_order_id[message.from_user.id]
+
+    await sync_order_message(message.bot, order_id)
+    await message.answer(
+        "📞 Telefon raqamingiz qabul qilindi va haydovchilarga yuborildi.",
+        reply_markup=order_keyboard,
+    )
 
 
 @router.message(F.location)
 async def handle_location(message: Message) -> None:
-    pending_info.setdefault(message.from_user.id, {})["location"] = (
-        message.location.latitude,
-        message.location.longitude,
+    order = get_or_create_order(message.from_user)
+    order["location"] = (message.location.latitude, message.location.longitude)
+    order_id = active_order_id[message.from_user.id]
+
+    await sync_order_message(message.bot, order_id)
+    await message.answer(
+        "📍 Joylashuvingiz qabul qilindi va haydovchilarga yuborildi.",
+        reply_markup=order_keyboard,
     )
-    await message.answer("📍 Joylashuvingiz qabul qilindi.", reply_markup=order_keyboard)
 
 
 @router.message(F.text)
 async def handle_order(message: Message) -> None:
-    user = message.from_user
-    info = pending_info.pop(user.id, {})
+    order = get_or_create_order(message.from_user)
+    order["text"] = message.text
+    order_id = active_order_id[message.from_user.id]
 
-    order_id = next(order_id_counter)
-    orders[order_id] = {
-        "customer_id": user.id,
-        "customer_name": user.full_name,
-        "text": message.text,
-    }
+    await sync_order_message(message.bot, order_id)
 
     confirmation = (
         "✅ <b>Zakazingiz qabul qilindi!</b>\n\n"
@@ -121,42 +209,6 @@ async def handle_order(message: Message) -> None:
         confirmation += "\n\n" + "\n".join(contact_lines)
 
     await message.answer(confirmation, reply_markup=order_keyboard)
-
-    customer_url = (
-        f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
-    )
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=f"👤 {user.full_name}",
-                    url=customer_url,
-                    style=ButtonStyle.PRIMARY,
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="✅ Qabul qilish",
-                    callback_data=f"accept:{order_id}",
-                    style=ButtonStyle.SUCCESS,
-                )
-            ],
-        ]
-    )
-
-    order_text = (
-        "🚖 <b>Yangi buyurtma!</b>\n\n"
-        f"👤 Mijoz: {user.full_name} ({user_contact(user.id, user.username)})\n"
-        f"📄 Ma'lumot: {message.text}"
-    )
-    if "phone" in info:
-        order_text += f"\n📞 Telefon: {info['phone']}"
-
-    await message.bot.send_message(DRIVERS_GROUP_ID, order_text, reply_markup=keyboard)
-
-    if "location" in info:
-        latitude, longitude = info["location"]
-        await message.bot.send_location(DRIVERS_GROUP_ID, latitude=latitude, longitude=longitude)
 
 
 @router.callback_query(F.data.startswith("accept:"))
@@ -187,6 +239,7 @@ async def handle_accept(callback: CallbackQuery) -> None:
         reply_markup=customer_keyboard,
     )
     del orders[order_id]
+    active_order_id.pop(order["customer_id"], None)
     await callback.answer("Buyurtma sizga biriktirildi!")
 
 
