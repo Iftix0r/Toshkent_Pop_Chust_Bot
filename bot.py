@@ -17,7 +17,7 @@ from aiogram.types import (
 )
 
 import storage
-from config import ADMIN_IDS, ADMIN_PHONE, ADMIN_USERNAME, BOT_TOKEN, DRIVERS_GROUP_ID
+from config import ADMIN_IDS, BOT_TOKEN, DRIVERS_GROUP_ID
 
 router = Router()
 order_id_counter = itertools.count(1)
@@ -281,19 +281,11 @@ async def handle_order(message: Message) -> None:
 
     await sync_order_message(message.bot, order_id)
 
-    confirmation = (
+    await message.answer(
         "✅ <b>Zakazingiz qabul qilindi!</b>\n\n"
-        "🚀 Tez orada haydovchilar siz bilan bog'lanadi."
+        "🚀 Tez orada haydovchilar siz bilan bog'lanadi.",
+        reply_markup=order_keyboard,
     )
-    contact_lines = []
-    if ADMIN_USERNAME:
-        contact_lines.append(f"✈️ @{ADMIN_USERNAME}")
-    if ADMIN_PHONE:
-        contact_lines.append(f"📞 Tel: {ADMIN_PHONE}")
-    if contact_lines:
-        confirmation += "\n\n" + "\n".join(contact_lines)
-
-    await message.answer(confirmation, reply_markup=order_keyboard)
 
 
 @router.callback_query(F.data.startswith("accept:"))
