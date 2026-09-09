@@ -25,6 +25,25 @@ order_id_counter = itertools.count(1)
 orders: dict[int, dict] = {}
 # customer_id -> order_id of their currently open (not yet accepted) order
 active_order_id: dict[int, int] = {}
+# admin ids currently expected to send the next message as a broadcast
+awaiting_broadcast: set[int] = set()
+
+admin_panel_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="📊 Statistika", callback_data="admin:stats", style=ButtonStyle.PRIMARY
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="📢 Reklama yuborish",
+                callback_data="admin:broadcast",
+                style=ButtonStyle.SUCCESS,
+            )
+        ],
+    ]
+)
 
 order_keyboard = ReplyKeyboardMarkup(
     keyboard=[
@@ -136,6 +155,14 @@ async def sync_order_message(bot: Bot, order_id: int) -> None:
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     user = message.from_user
+
+    if user.id in ADMIN_IDS:
+        await message.answer(
+            "🎛 <b>Admin panel</b>\n\nQuyidagi tugmalardan birini tanlang:",
+            reply_markup=admin_panel_keyboard,
+        )
+        return
+
     is_new = storage.register_user(user.id, user.full_name, user.username)
 
     if is_new:
@@ -160,6 +187,51 @@ async def cmd_stats(message: Message) -> None:
     if message.from_user.id not in ADMIN_IDS:
         return
     await message.answer(f"📊 Foydalanuvchilar soni: <b>{storage.users_count()}</b>")
+
+
+@router.callback_query(F.data == "admin:stats")
+async def admin_stats(callback: CallbackQuery) -> None:
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer()
+        return
+    await callback.message.answer(f"📊 Foydalanuvchilar soni: <b>{storage.users_count()}</b>")
+    await callback.answer()
+
+
+@router.callback_query(F.data == "admin:broadcast")
+async def admin_broadcast_prompt(callback: CallbackQuery) -> None:
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer()
+        return
+    awaiting_broadcast.add(callback.from_user.id)
+    await callback.message.answer(
+        "📢 Reklama sifatida yubormoqchi bo'lgan xabaringizni yuboring "
+        "(matn, rasm, video va h.k.):"
+    )
+    await callback.answer()
+
+
+def is_awaiting_broadcast(message: Message) -> bool:
+    return message.from_user.id in awaiting_broadcast
+
+
+@router.message(is_awaiting_broadcast)
+async def handle_broadcast_content(message: Message) -> None:
+    awaiting_broadcast.discard(message.from_user.id)
+
+    sent = 0
+    failed = 0
+    for user_id in storage.all_user_ids():
+        try:
+            await message.copy_to(user_id)
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)
+
+    await message.answer(
+        f"📢 Reklama yuborildi.\n✅ Yetkazildi: {sent}\n❌ Yetkazilmadi: {failed}"
+    )
 
 
 @router.message(F.contact)

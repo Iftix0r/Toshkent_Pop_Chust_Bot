@@ -4,8 +4,6 @@ from pathlib import Path
 
 USERS_FILE = Path(__file__).parent / "users.json"
 
-_lock_data: dict[str, dict] = {}
-
 
 def _load() -> dict[str, dict]:
     if not USERS_FILE.exists():
@@ -37,3 +35,7 @@ def register_user(user_id: int, full_name: str, username: str | None) -> bool:
 
 def users_count() -> int:
     return len(_load())
+
+
+def all_user_ids() -> list[int]:
+    return [int(user_id) for user_id in _load()]
