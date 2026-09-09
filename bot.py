@@ -45,6 +45,18 @@ admin_panel_keyboard = InlineKeyboardMarkup(
     ]
 )
 
+developer_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="👨‍💻 Dasturchi xizmati",
+                url="https://t.me/Iftix0r",
+                style=ButtonStyle.PRIMARY,
+            )
+        ]
+    ]
+)
+
 order_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -180,6 +192,7 @@ async def cmd_start(message: Message) -> None:
         "telefon raqam va boshqa ma'lumotlar):",
         reply_markup=order_keyboard,
     )
+    await message.answer("🛠 Bot bilan bog'liq muammo yoki taklif bo'lsa:", reply_markup=developer_keyboard)
 
 
 @router.message(Command("stats"))
