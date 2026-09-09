@@ -11,3 +11,4 @@ ADMIN_IDS = [
     for admin_id in os.environ.get("ADMIN_IDS", "").split(",")
     if admin_id.strip()
 ]
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")

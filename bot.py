@@ -16,7 +16,7 @@ from aiogram.types import (
 )
 
 import storage
-from config import ADMIN_IDS, BOT_TOKEN, DRIVERS_GROUP_ID
+from config import ADMIN_IDS, ADMIN_USERNAME, BOT_TOKEN, DRIVERS_GROUP_ID
 
 router = Router()
 order_id_counter = itertools.count(1)
@@ -98,11 +98,14 @@ async def handle_order(message: Message) -> None:
         "text": message.text,
     }
 
-    await message.answer(
+    confirmation = (
         "✅ <b>Zakazingiz qabul qilindi!</b>\n\n"
-        "🚀 Tez orada haydovchilar siz bilan bog'lanadi.",
-        reply_markup=order_keyboard,
+        "🚀 Tez orada haydovchilar siz bilan bog'lanadi."
     )
+    if ADMIN_USERNAME:
+        confirmation += f"\n\n👨‍💼 Admin: @{ADMIN_USERNAME}"
+
+    await message.answer(confirmation, reply_markup=order_keyboard)
 
     customer_url = (
         f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
