@@ -12,3 +12,4 @@ ADMIN_IDS = [
     if admin_id.strip()
 ]
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
+ADMIN_PHONE = os.environ.get("ADMIN_PHONE", "")

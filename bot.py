@@ -16,7 +16,7 @@ from aiogram.types import (
 )
 
 import storage
-from config import ADMIN_IDS, ADMIN_USERNAME, BOT_TOKEN, DRIVERS_GROUP_ID
+from config import ADMIN_IDS, ADMIN_PHONE, ADMIN_USERNAME, BOT_TOKEN, DRIVERS_GROUP_ID
 
 router = Router()
 order_id_counter = itertools.count(1)
@@ -67,11 +67,9 @@ async def cmd_start(message: Message) -> None:
         )
 
     await message.answer(
-        f"👋 <b>Assalomu alaykum!</b> <i>{user.full_name}</i>\n\n"
+        "👋 <b>Assalomu alaykum!</b>\n\n"
         "📝 <b>Zakazingizni yozing</b> (qayerga borasiz, "
-        "telefon raqam va boshqa ma'lumotlar):\n\n"
-        "Xohlasangiz, pastdagi tugmalar orqali telefon raqamingiz va "
-        "joylashuvingizni ham yuborishingiz mumkin.",
+        "telefon raqam va boshqa ma'lumotlar):",
         reply_markup=order_keyboard,
     )
 
@@ -114,8 +112,13 @@ async def handle_order(message: Message) -> None:
         "✅ <b>Zakazingiz qabul qilindi!</b>\n\n"
         "🚀 Tez orada haydovchilar siz bilan bog'lanadi."
     )
+    contact_lines = []
     if ADMIN_USERNAME:
-        confirmation += f"\n\n👨‍💼 Admin: @{ADMIN_USERNAME}"
+        contact_lines.append(f"✈️ @{ADMIN_USERNAME}")
+    if ADMIN_PHONE:
+        contact_lines.append(f"📞 Tel: {ADMIN_PHONE}")
+    if contact_lines:
+        confirmation += "\n\n" + "\n".join(contact_lines)
 
     await message.answer(confirmation, reply_markup=order_keyboard)
 
