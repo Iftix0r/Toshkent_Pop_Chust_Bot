@@ -1,0 +1,15 @@
+[Unit]
+Description=Toshkent Pop Chust taxi bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/Iftixor/Github/Toshkent_Pop_Chust_Bot
+ExecStart=/root/Iftixor/Github/Toshkent_Pop_Chust_Bot/venv/bin/python3 bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
