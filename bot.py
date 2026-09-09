@@ -4,7 +4,7 @@ import logging
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
+from aiogram.enums import ButtonStyle, ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     CallbackQuery,
@@ -27,8 +27,20 @@ pending_info: dict[int, dict] = {}
 
 order_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🟢📞 Telefon yuborish", request_contact=True)],
-        [KeyboardButton(text="🔵📍 Joylashuv yuborish", request_location=True)],
+        [
+            KeyboardButton(
+                text="📞 Telefon yuborish",
+                request_contact=True,
+                style=ButtonStyle.SUCCESS,
+            )
+        ],
+        [
+            KeyboardButton(
+                text="📍 Joylashuv yuborish",
+                request_location=True,
+                style=ButtonStyle.PRIMARY,
+            )
+        ],
     ],
     resize_keyboard=True,
 )
@@ -112,10 +124,18 @@ async def handle_order(message: Message) -> None:
     )
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=f"🔵 {user.full_name}", url=customer_url)],
             [
                 InlineKeyboardButton(
-                    text="🟢 Qabul qilish", callback_data=f"accept:{order_id}"
+                    text=f"👤 {user.full_name}",
+                    url=customer_url,
+                    style=ButtonStyle.PRIMARY,
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✅ Qabul qilish",
+                    callback_data=f"accept:{order_id}",
+                    style=ButtonStyle.SUCCESS,
                 )
             ],
         ]
