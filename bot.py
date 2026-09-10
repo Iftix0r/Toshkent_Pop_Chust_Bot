@@ -192,7 +192,6 @@ async def cmd_start(message: Message) -> None:
         "telefon raqam va boshqa ma'lumotlar):",
         reply_markup=order_keyboard,
     )
-    await message.answer("🛠 Bot bilan bog'liq muammo yoki taklif bo'lsa:", reply_markup=developer_keyboard)
 
 
 @router.message(Command("stats"))
@@ -286,6 +285,7 @@ async def handle_order(message: Message) -> None:
         "🚀 Tez orada haydovchilar siz bilan bog'lanadi.",
         reply_markup=order_keyboard,
     )
+    await message.answer("🛠 Bot bilan bog'liq muammo yoki taklif bo'lsa:", reply_markup=developer_keyboard)
 
 
 @router.callback_query(F.data.startswith("accept:"))
