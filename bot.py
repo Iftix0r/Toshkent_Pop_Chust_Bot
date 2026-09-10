@@ -112,9 +112,7 @@ ORDER_SEPARATOR = "--------------------------------"
 
 
 def build_order_text(order: dict) -> str:
-    lines = [
-        "🚖 <b>Yangi buyurtma!</b>",
-        "",
+    fields = [
         f"👤 Mijoz: {order['customer_name']} "
         f"({user_contact(order['customer_id'], order['username'])})",
         f"🆔 Mijoz ID: <code>{order['customer_id']}</code>",
@@ -122,19 +120,18 @@ def build_order_text(order: dict) -> str:
         f"🕒 Vaqt: {order['created_at'].strftime('%d.%m.%Y %H:%M')}",
     ]
     if order.get("phone"):
-        lines.append(ORDER_SEPARATOR)
-        lines.append(f"📞 Telefon: {order['phone']}")
+        fields.append(f"📞 Telefon: {order['phone']}")
     if order.get("location"):
         latitude, longitude = order["location"]
-        lines.append(ORDER_SEPARATOR)
-        lines.append(
+        fields.append(
             "📍 Joylashuv: "
             f'<a href="https://maps.google.com/?q={latitude},{longitude}">xaritada ko\'rish</a>'
         )
     if order.get("text"):
-        lines.append(ORDER_SEPARATOR)
-        lines.append(f"📄 Ma'lumot: {order['text']}")
-    return "\n".join(lines)
+        fields.append(f"📄 Ma'lumot: {order['text']}")
+
+    body = f"\n{ORDER_SEPARATOR}\n".join(fields)
+    return f"🚖 <b>Yangi buyurtma!</b>\n\n{body}"
 
 
 def build_order_keyboard(order_id: int, order: dict) -> InlineKeyboardMarkup:
