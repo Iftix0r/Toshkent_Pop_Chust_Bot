@@ -108,6 +108,9 @@ def get_or_create_order(user: User) -> dict:
     return order
 
 
+ORDER_SEPARATOR = "--------------------------------"
+
+
 def build_order_text(order: dict) -> str:
     lines = [
         "🚖 <b>Yangi buyurtma!</b>",
@@ -119,14 +122,17 @@ def build_order_text(order: dict) -> str:
         f"🕒 Vaqt: {order['created_at'].strftime('%d.%m.%Y %H:%M')}",
     ]
     if order.get("phone"):
+        lines.append(ORDER_SEPARATOR)
         lines.append(f"📞 Telefon: {order['phone']}")
     if order.get("location"):
         latitude, longitude = order["location"]
+        lines.append(ORDER_SEPARATOR)
         lines.append(
             "📍 Joylashuv: "
             f'<a href="https://maps.google.com/?q={latitude},{longitude}">xaritada ko\'rish</a>'
         )
     if order.get("text"):
+        lines.append(ORDER_SEPARATOR)
         lines.append(f"📄 Ma'lumot: {order['text']}")
     return "\n".join(lines)
 
