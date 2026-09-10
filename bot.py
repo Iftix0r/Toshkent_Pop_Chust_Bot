@@ -4,7 +4,7 @@ import logging
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ButtonStyle, ParseMode
+from aiogram.enums import ButtonStyle, ChatType, ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     CallbackQuery,
@@ -20,6 +20,7 @@ import storage
 from config import ADMIN_IDS, BOT_TOKEN, DRIVERS_GROUP_ID
 
 router = Router()
+router.message.filter(F.chat.type == ChatType.PRIVATE)
 order_id_counter = itertools.count(1)
 # order_id -> {"customer_id", "customer_name", "username", "phone", "location", "text", "message_id"}
 orders: dict[int, dict] = {}
