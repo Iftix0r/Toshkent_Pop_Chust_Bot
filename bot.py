@@ -46,12 +46,12 @@ admin_panel_keyboard = InlineKeyboardMarkup(
     ]
 )
 
-developer_keyboard = InlineKeyboardMarkup(
+admin_contact_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(
-                text="👨‍💻 Dasturchi xizmati",
-                url="https://t.me/Iftix0r",
+                text="👮 Admin",
+                url="https://t.me/HusniddinMirzo_2012",
                 style=ButtonStyle.PRIMARY,
             )
         ]
@@ -286,7 +286,7 @@ async def handle_order(message: Message) -> None:
         "🚀 Tez orada haydovchilar siz bilan bog'lanadi.",
         reply_markup=order_keyboard,
     )
-    await message.answer("🛠 Bot bilan bog'liq muammo yoki taklif bo'lsa:", reply_markup=developer_keyboard)
+    await message.answer("🛠 Haydovchi bilan muammo bo'lsa:", reply_markup=admin_contact_keyboard)
 
 
 @router.callback_query(F.data.startswith("accept:"))
