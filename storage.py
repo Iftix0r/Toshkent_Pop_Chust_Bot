@@ -37,5 +37,17 @@ def users_count() -> int:
     return len(_load())
 
 
+def increment_order_count(user_id: int) -> int:
+    """Bump and return this user's total order count."""
+    data = _load()
+    key = str(user_id)
+    if key not in data:
+        data[key] = {"full_name": None, "username": None, "joined_at": None}
+
+    data[key]["order_count"] = data[key].get("order_count", 0) + 1
+    _save(data)
+    return data[key]["order_count"]
+
+
 def all_user_ids() -> list[int]:
     return [int(user_id) for user_id in _load()]

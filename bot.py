@@ -1,6 +1,8 @@
 import asyncio
 import itertools
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
@@ -28,6 +30,8 @@ orders: dict[int, dict] = {}
 active_order_id: dict[int, int] = {}
 # admin ids currently expected to send the next message as a broadcast
 awaiting_broadcast: set[int] = set()
+
+TASHKENT_TZ = ZoneInfo("Asia/Tashkent")
 
 admin_panel_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -96,6 +100,8 @@ def get_or_create_order(user: User) -> dict:
         "customer_name": user.full_name,
         "username": user.username,
         "message_id": None,
+        "order_number": storage.increment_order_count(user.id),
+        "created_at": datetime.now(TASHKENT_TZ),
     }
     orders[order_id] = order
     active_order_id[user.id] = order_id
@@ -108,6 +114,9 @@ def build_order_text(order: dict) -> str:
         "",
         f"👤 Mijoz: {order['customer_name']} "
         f"({user_contact(order['customer_id'], order['username'])})",
+        f"🆔 Mijoz ID: <code>{order['customer_id']}</code>",
+        f"🔢 Buyurtma: {order['order_number']}-chi",
+        f"🕒 Vaqt: {order['created_at'].strftime('%d.%m.%Y %H:%M')}",
     ]
     if order.get("phone"):
         lines.append(f"📞 Telefon: {order['phone']}")
